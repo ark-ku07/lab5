@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>  // ← ЭТУ СТРОКУ ДОБАВЬ!
+#include <stdlib.h> 
 #include "cafe.h"
 
 int main() {
