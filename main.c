@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "cafe.h"
 
 int main() {
@@ -7,32 +8,46 @@ int main() {
     
     int choice;
     
-    do {
-        printf("\n1. Pokazat menu\n");
-        printf("2. Dobavit bludo\n");
-        printf("3. Redaktirovat bludo\n");
-        printf("4. Najti po cene\n");
-        printf("5. Najti po kategorii\n");
-        printf("6. Udalit bludo\n");
-        printf("7. Sohranit v fayl\n");
-        printf("8. Zagruzit iz fayla\n");
+    while (1) {
+        printf("\nMenu:\n");
+        printf("1. Pokazat vse\n");
+        printf("2. Dobavit noviy\n");
+        printf("3. Redaktirovat\n");
+        printf("4. Naiti\n");
+        printf("5. Udalit\n");
         printf("0. Vihod\n");
         printf("Vash vibor: ");
-        scanf("%d", &choice);
         
-        switch (choice) {
-            case 1: show(&cafe_menu); break;
-            case 2: add(&cafe_menu); break;
-            case 3: edit(&cafe_menu); break;
-            case 4: find_by_price(&cafe_menu); break;
-            case 5: find_by_category(&cafe_menu); break;
-            case 6: del(&cafe_menu); break;
-            case 7: save(&cafe_menu); break;
-            case 8: load(&cafe_menu); break;
-            case 0: save(&cafe_menu); printf("Do svidaniya!\n"); break;
-            default: printf("Nekorrektniy vibor.\n");
+        char input[20];
+        scanf("%s", input);
+        if (sscanf(input, "%d", &choice) != 1) {
+            printf("Vvedite chislo!\n");
+            continue;
         }
-    } while (choice != 0);
+        
+        if (choice == 0) {
+            save(&cafe_menu);
+            break;
+        } else if (choice == 1) {
+            show(&cafe_menu);
+        } else if (choice == 2) {
+            add(&cafe_menu);
+        } else if (choice == 3) {
+            edit(&cafe_menu);
+        } else if (choice == 4) {
+            find(&cafe_menu);
+        } else if (choice == 5) {
+            del(&cafe_menu);
+        } else {
+            printf("Nepravilniy vibor\n");
+        }
+    }
+    
+    while (cafe_menu.head != NULL) {
+        Item* temp = cafe_menu.head;
+        cafe_menu.head = cafe_menu.head->next;
+        free(temp);
+    }
     
     return 0;
 }
