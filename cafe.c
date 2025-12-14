@@ -3,113 +3,185 @@
 #include <string.h>
 #include "cafe.h"
 
-Item* head = NULL;
-int id_count = 1;
-
-void init() {
-    FILE* f = fopen("db.txt", "r");
-    if (!f) return;
-    
-    Item* last = NULL;
-    while (1) {
-        Item* new = (Item*)malloc(sizeof(Item));
-        if (!new) break;
-        
-        int res = fscanf(f, "%d %s %f", &new->id, new->name, &new->price);
-        if (res != 3) { free(new); break; }
-        
-        new->next = NULL;
-        
-        if (!head) head = new;
-        else last->next = new;
-        last = new;
-        
-        if (new->id >= id_count) id_count = new->id + 1;
-    }
-    fclose(f);
+void init_menu(Menu* menu) {
+    menu->head = NULL;
+    menu->next_id = 1;
 }
 
-void show() {
-    Item* p = head;
-    if (!p) { printf("Pusto\n"); return; }
-    
-    while (p) {
-        printf("%d. %s - %.2f\n", p->id, p->name, p->price);
-        p = p->next;
-    }
-}
-
-void add() {
-    Item* new = (Item*)malloc(sizeof(Item));
-    new->id = id_count++;
-    
-    printf("Nazvanie: "); scanf("%s", new->name);
-    printf("Tsena: "); scanf("%f", &new->price);
-    
-    new->next = NULL;
-    
-    if (!head) head = new;
-    else {
-        Item* p = head;
-        while (p->next) p = p->next;
-        p->next = new;
-    }
-    save();
-}
-
-Item* find_id(int id) {
-    Item* p = head;
-    while (p && p->id != id) p = p->next;
-    return p;
-}
-
-void find() {
-    int t; scanf("%d", &t);
-    
-    if (t == 1) {
-        int id; scanf("%d", &id);
-        Item* f = find_id(id);
-        printf(f ? "Naideno: %s\n" : "Net\n", f->name);
-    } else {
-        float price; scanf("%f", &price);
-        Item* p = head;
-        while (p) {
-            if (p->price <= price) printf("%d. %s\n", p->id, p->name);
-            p = p->next;
-        }
-    }
-}
-
-void del() {
-    int id; scanf("%d", &id);
-    
-    if (!head) { printf("Net\n"); return; }
-    
-    if (head->id == id) {
-        Item* t = head;
-        head = head->next;
-        free(t);
-        save();
+void show(Menu* menu) {
+    if (menu->head == NULL) {
+        printf("Pusto.\n");
         return;
     }
     
-    Item* p = head;
-    while (p->next && p->next->id != id) p = p->next;
-    
-    if (!p->next) { printf("Net\n"); return; }
-    
-    Item* t = p->next;
-    p->next = t->next;
-    free(t);
-    save();
+    printf("\nMenu:\n");
+    Item* current = menu->head;
+    while (current != NULL) {
+        printf("%d. %s - %.2f rub. [%s]\n",
+               current->id, current->name, current->price, current->category);
+        current = current->next;
+    }
 }
 
-void save() {
-    FILE* f = fopen("db.txt", "w");
-    Item* p = head;
-    while (p) {
-        fprintf(f, "%d %s %.2f\n", p->id, p->name, p->price);
-        p = p->next;
+void add(Menu* menu) {
+    Item* new_item = (Item*)malloc(sizeof(Item));
+    if (new_item == NULL) {
+        printf("Oshibka pamyati.\n");
+        return;
     }
-    fclose(f);
+    
+    new_item->id = menu->next_id++;
+    
+    printf("Nazvanie: ");
+    scanf("%s", new_item->name);
+    printf("Cena: ");
+    scanf("%f", &new_item->price);
+    printf("Kategoriya: ");
+    scanf("%s", new_item->category);
+    
+    new_item->next = menu->head;
+    menu->head = new_item;
+    
+    printf("Dobavleno.\n");
+}
+
+void edit(Menu* menu) {
+    int id;
+    printf("ID dlya redaktirovaniya: ");
+    scanf("%d", &id);
+    
+    Item* current = menu->head;
+    while (current != NULL) {
+        if (current->id == id) {
+            printf("Novoe nazvanie: ");
+            scanf("%s", current->name);
+            printf("Novaya cena: ");
+            scanf("%f", &current->price);
+            printf("Novaya kategoriya: ");
+            scanf("%s", current->category);
+            printf("Izmeneno.\n");
+            return;
+        }
+        current = current->next;
+    }
+    printf("Ne najdeno.\n");
+}
+
+void find_by_price(Menu* menu) {
+    float price;
+    printf("Cena dlya poiska: ");
+    scanf("%f", &price);
+    
+    Item* current = menu->head;
+    while (current != NULL) {
+        if (current->price == price) {
+            printf("Najdeno: %s (id: %d, kategoriya: %s)\n",
+                   current->name, current->id, current->category);
+            return;
+        }
+        current = current->next;
+    }
+    printf("Ne najdeno.\n");
+}
+
+void find_by_category(Menu* menu) {
+    char category[30];
+    printf("Kategoriya dlya poiska: ");
+    scanf("%s", category);
+    
+    Item* current = menu->head;
+    int found = 0;
+    
+    printf("\nRezultaty poiska (kategoriya = %s):\n", category);
+    while (current != NULL) {
+        if (strcmp(current->category, category) == 0) {
+            printf("ID: %d | %s | %.2f rub\n",
+                   current->id, current->name, current->price);
+            found = 1;
+        }
+        current = current->next;
+    }
+    
+    if (!found) {
+        printf("Ne najdeno.\n");
+    }
+}
+
+void del(Menu* menu) {
+    int id;
+    printf("ID dlya udaleniya: ");
+    scanf("%d", &id);
+    
+    Item* current = menu->head;
+    Item* prev = NULL;
+    
+    while (current != NULL) {
+        if (current->id == id) {
+            if (prev == NULL) {
+                menu->head = current->next;
+            } else {
+                prev->next = current->next;
+            }
+            free(current);
+            printf("Udaleno.\n");
+            return;
+        }
+        prev = current;
+        current = current->next;
+    }
+    printf("Ne najdeno.\n");
+}
+
+void save(Menu* menu) {
+    FILE* file = fopen(FILE_NAME, "w");
+    if (!file) {
+        printf("Oshibka sohraneniya.\n");
+        return;
+    }
+    
+    Item* current = menu->head;
+    while (current != NULL) {
+        fprintf(file, "%d %s %.2f %s\n",
+                current->id, current->name, current->price, current->category);
+        current = current->next;
+    }
+    
+    fclose(file);
+    printf("Sohraneno v %s.\n", FILE_NAME);
+}
+
+void load(Menu* menu) {
+    FILE* file = fopen(FILE_NAME, "r");
+    if (!file) {
+        printf("Fayla %s net.\n", FILE_NAME);
+        return;
+    }
+    
+    while (menu->head != NULL) {
+        Item* temp = menu->head;
+        menu->head = menu->head->next;
+        free(temp);
+    }
+    
+    int id;
+    char name[50], category[30];
+    float price;
+    menu->next_id = 1;
+    
+    while (fscanf(file, "%d %s %f %s", &id, name, &price, category) == 4) {
+        Item* new_item = (Item*)malloc(sizeof(Item));
+        new_item->id = id;
+        strcpy(new_item->name, name);
+        new_item->price = price;
+        strcpy(new_item->category, category);
+        new_item->next = menu->head;
+        menu->head = new_item;
+        
+        if (id >= menu->next_id) {
+            menu->next_id = id + 1;
+        }
+    }
+    
+    fclose(file);
+    printf("Zagruzheno iz %s.\n", FILE_NAME);
 }
